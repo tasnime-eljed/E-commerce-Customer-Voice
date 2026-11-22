@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<!--
+  ÉTAPE 4 : Mini-application web de test (Option B : page HTML/JS statique).
+
+  Elle est servie directement par FastAPI sur http://127.0.0.1:8000/
+  L'utilisateur saisit un texte OU importe une image / un audio,
+  la page appelle l'API en arrière-plan (fetch) et affiche le sentiment
+  prédit avec une barre de confiance.
+-->
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Voice - Test de l'API</title>
+  <style>
+    /* ---- Mise en page simple ---- */
+    body { font-family: system-ui, Arial, sans-serif; background: #f3f4f6; margin: 0; color: #1f2937; }
+    main { max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 1.6rem; margin-bottom: 4px; }
+    .sous-titre { color: #6b7280; margin-top: 0; }
+    .carte { background: white; border-radius: 12px; padding: 20px; margin-top: 20px;
+             box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+
+    /* ---- Onglets Texte / Image / Audio ---- */
+    .onglets { display: flex; gap: 8px; margin-bottom: 16px; }
+    .onglets button { flex: 1; padding: 10px; border: 1px solid #d1d5db; background: #f9fafb;
+                      border-radius: 8px; cursor: pointer; font-size: 1rem; }
+    .onglets button.actif { background: #2563eb; color: white; border-color: #2563eb; }
+    .panneau { display: none; }
+    .panneau.actif { display: block; }
+
+    textarea { width: 100%; min-height: 100px; padding: 10px; font-size: 1rem;
+               border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; }
+    .envoyer { margin-top: 12px; padding: 10px 20px; font-size: 1rem; background: #2563eb;
+               color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .envoyer:disabled { background: #93c5fd; cursor: wait; }
+
+    /* ---- Résultat ---- */
+    #resultat { display: none; }
+    .badge { display: inline-block; padding: 6px 14px; border-radius: 999px; color: white;
+             font-weight: bold; font-size: 1.1rem; text-transform: uppercase; }
+    .positif { background: #16a34a; }
+    .negatif { background: #dc2626; }
+    .neutre  { background: #6b7280; }
+    .barre { height: 14px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin-top: 6px; }
+    .barre div { height: 100%; background: #2563eb; transition: width .4s; }
+    .texte-extrait { background: #f9fafb; padding: 10px; border-radius: 8px; font-style: italic; }
+    .erreur { color: #dc2626; font-weight: bold; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>E-commerce Customer Voice</h1>
+  <p class="sous-titre">Classifieur de sentiment multi-source : texte, image (OCR) ou audio (transcription).</p>
+
+  <div class="carte">
+    <!-- Choix de la source -->
+    <div class="onglets">
+      <button class="actif" data-panneau="texte">Texte</button>
+      <button data-panneau="image">Image</button>
+      <button data-panneau="audio">Audio</button>
+    </div>
+
+    <!-- Source 1 : texte -->
+    <div class="panneau actif" id="panneau-texte">
+      <textarea id="champ-texte" placeholder="Écrivez un avis client...">Produit conforme à la description, livraison super rapide, je recommande !</textarea>
+      <button class="envoyer" onclick="envoyerTexte()">Analyser le texte</button>
+    </div>
+
+    <!-- Source 2 : image -->
+    <div class="panneau" id="panneau-image">
+      <input type="file" id="champ-image" accept="image/png,image/jpeg">
+      <br><button class="envoyer" onclick="envoyerFichier('image')">Analyser l'image</button>
+    </div>
+
+    <!-- Source 3 : audio -->
+    <div class="panneau" id="panneau-audio">
+      <input type="file" id="champ-audio" accept="audio/wav,audio/mpeg,.wav,.mp3">
+      <br><button class="envoyer" onclick="envoyerFichier('audio')">Analyser l'audio</button>
+      <p class="sous-titre">La première analyse audio peut prendre quelques secondes (chargement du modèle).</p>
+    </div>
+  </div>
+
+  <!-- Zone d'affichage du résultat -->
+  <div class="carte" id="resultat"></div>
+</main>
+
+<script>
+  // ---- Gestion des onglets : on affiche le panneau correspondant au bouton cliqué ----
+  document.querySelectorAll(".onglets button").forEach(bouton => {
+    bouton.addEventListener("click", () => {
+      document.querySelectorAll(".onglets button").forEach(b => b.classList.remove("actif"));
+      document.querySelectorAll(".panneau").forEach(p => p.classList.remove("actif"));
+      bouton.classList.add("actif");
+      document.getElementById("panneau-" + bouton.dataset.panneau).classList.add("actif");
+    });
+  });
+
+  // ---- Envoi d'un texte : POST /predict/text avec un corps JSON ----
+  function envoyerTexte() {
+    const texte = document.getElementById("champ-texte").value;
+    appelerApi("/predict/text", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texte: texte })
+    });
+  }
+
+  // ---- Envoi d'un fichier : POST /predict/image ou /predict/audio en multipart/form-data ----
+  function envoyerFichier(type) {
+    const champ = document.getElementById("champ-" + type);
+    if (!champ.files.length) { afficherErreur("Choisissez d'abord un fichier."); return; }
+    const formulaire = new FormData();
+    formulaire.append("fichier", champ.files[0]);
+    appelerApi("/predict/" + type, { method: "POST", body: formulaire });
+  }
+
+  // ---- Appel générique de l'API puis affichage du résultat ----
+  async function appelerApi(url, options) {
+    const boutons = document.querySelectorAll(".envoyer");
+    boutons.forEach(b => b.disabled = true);  // évite les doubles clics pendant l'analyse
+    try {
+      const reponse = await fetch(url, options);
+      const donnees = await reponse.json();
+      if (!reponse.ok) {
+        // Erreur 422 : FastAPI renvoie les détails dans "detail"
+        afficherErreur("Erreur " + reponse.status + " : " + JSON.stringify(donnees.detail));
+      } else {
+        afficherResultat(donnees);
+      }
+    } catch (e) {
+      afficherErreur("Impossible de contacter l'API : " + e);
+    } finally {
+      boutons.forEach(b => b.disabled = false);
+    }
+  }
+
+  // ---- Affichage : badge coloré + barre de confiance + texte extrait ----
+  function afficherResultat(d) {
+    const pourcentage = Math.round(d.confiance * 100);
+    const zone = document.getElementById("resultat");
+    zone.style.display = "block";
+    zone.innerHTML = `
+      <p>Source : <strong>${d.source}</strong></p>
+      <p>Sentiment prédit : <span class="badge ${d.sentiment_predit}">${d.sentiment_predit}</span></p>
+      <p>Confiance : <strong>${pourcentage} %</strong></p>
+      <div class="barre"><div style="width:${pourcentage}%"></div></div>
+      <p>Texte analysé :</p>
+      <p class="texte-extrait"></p>`;
+    // textContent (et non innerHTML) pour afficher le texte sans risque d'injection HTML
+    zone.querySelector(".texte-extrait").textContent = d.texte_extrait;
+  }
+
+  function afficherErreur(message) {
+    const zone = document.getElementById("resultat");
+    zone.style.display = "block";
+    zone.innerHTML = '<p class="erreur"></p>';
+    zone.querySelector(".erreur").textContent = message;
+  }
+</script>
+</body>
+</html>

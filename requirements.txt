@@ -1,0 +1,21 @@
+# --- Étape 1 : données et modèle texte ---
+pandas==3.1.1
+scikit-learn==1.9.1
+joblib==1.6.0
+matplotlib==3.11.2
+
+# --- Étape 2 : OCR (image) et ASR (audio) ---
+pytesseract==0.3.13      # nécessite aussi le logiciel Tesseract (voir README)
+pillow==13.0.0
+faster-whisper==1.2.1    # transcription audio (Whisper allégé, CPU)
+av==15.1.0               # lecture wav/mp3 ; garder < 16 (compatibilité faster-whisper)
+
+# --- Étape 3 : API REST ---
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+python-multipart==0.0.34 # réception des fichiers (multipart/form-data)
+pydantic==2.14.4
+
+# --- Étape 5 : tests ---
+pytest==9.2.0
+httpx==0.28.1
