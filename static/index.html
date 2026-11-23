@@ -13,77 +13,198 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Customer Voice - Test de l'API</title>
   <style>
-    /* ---- Mise en page simple ---- */
-    body { font-family: system-ui, Arial, sans-serif; background: #f3f4f6; margin: 0; color: #1f2937; }
-    main { max-width: 720px; margin: 40px auto; padding: 0 16px; }
-    h1 { font-size: 1.6rem; margin-bottom: 4px; }
-    .sous-titre { color: #6b7280; margin-top: 0; }
-    .carte { background: white; border-radius: 12px; padding: 20px; margin-top: 20px;
-             box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    /* ===================== Couleurs et polices (variables) ===================== */
+    :root {
+      --fond: #f4f1ea;          /* fond de page beige clair */
+      --carte: #ffffff;
+      --encre: #1c1917;         /* texte principal */
+      --gris: #78716c;          /* texte secondaire */
+      --bordure: #e7e2d9;
+      --accent: #0f766e;        /* vert sarcelle : boutons, onglet actif */
+      --accent-clair: #ccfbf1;
+      --positif: #15803d;
+      --negatif: #b91c1c;
+      --neutre: #57534e;
+    }
 
-    /* ---- Onglets Texte / Image / Audio ---- */
-    .onglets { display: flex; gap: 8px; margin-bottom: 16px; }
-    .onglets button { flex: 1; padding: 10px; border: 1px solid #d1d5db; background: #f9fafb;
-                      border-radius: 8px; cursor: pointer; font-size: 1rem; }
-    .onglets button.actif { background: #2563eb; color: white; border-color: #2563eb; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--fond);
+      color: var(--encre);
+    }
+
+    /* ===================== En-tête ===================== */
+    header {
+      background: var(--encre);
+      color: #fafaf9;
+      padding: 28px 16px 64px;     /* bas plus grand : la carte vient chevaucher l'en-tête */
+    }
+    .entete { max-width: 760px; margin: 0 auto; }
+    .etiquette {
+      display: inline-block; font-size: .75rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent-clair); border: 1px solid #44403c; padding: 4px 10px; border-radius: 999px;
+    }
+    h1 { font-size: 2rem; margin: 14px 0 6px; font-weight: 700; letter-spacing: -.01em; }
+    .sous-titre { color: #d6d3d1; margin: 0; line-height: 1.5; }
+
+    /* Schéma de la cascade : 3 sources -> 1 classifieur */
+    .cascade { display: flex; align-items: center; gap: 8px; margin-top: 18px; flex-wrap: wrap;
+               font-size: .85rem; color: #d6d3d1; }
+    .cascade span { background: #292524; border: 1px solid #44403c; padding: 4px 10px; border-radius: 6px; }
+    .cascade .fleche { background: none; border: none; padding: 0; color: var(--accent-clair); }
+
+    /* ===================== Contenu principal ===================== */
+    main { max-width: 760px; margin: -40px auto 40px; padding: 0 16px; }
+    .carte {
+      background: var(--carte); border: 1px solid var(--bordure); border-radius: 14px;
+      padding: 24px; box-shadow: 0 10px 30px -18px rgba(28, 25, 23, .35);
+    }
+    .carte + .carte { margin-top: 18px; }
+
+    /* ===================== Onglets Texte / Image / Audio ===================== */
+    .onglets { display: flex; gap: 4px; background: var(--fond); padding: 4px; border-radius: 10px;
+               margin-bottom: 20px; }
+    .onglets button {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px; border: none; background: transparent; border-radius: 8px;
+      cursor: pointer; font-size: .95rem; font-weight: 600; color: var(--gris);
+    }
+    .onglets button svg { width: 18px; height: 18px; }
+    .onglets button.actif { background: var(--carte); color: var(--accent);
+                            box-shadow: 0 1px 3px rgba(0,0,0,.12); }
     .panneau { display: none; }
     .panneau.actif { display: block; }
 
-    textarea { width: 100%; min-height: 100px; padding: 10px; font-size: 1rem;
-               border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box; }
-    .envoyer { margin-top: 12px; padding: 10px 20px; font-size: 1rem; background: #2563eb;
-               color: white; border: none; border-radius: 8px; cursor: pointer; }
-    .envoyer:disabled { background: #93c5fd; cursor: wait; }
+    label.titre-champ { display: block; font-weight: 600; margin-bottom: 8px; }
+    textarea {
+      width: 100%; min-height: 120px; padding: 12px 14px; font: inherit; font-size: 1rem; line-height: 1.5;
+      border: 1px solid var(--bordure); border-radius: 10px; resize: vertical; background: #fdfcfa;
+    }
+    textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-    /* ---- Résultat ---- */
-    #resultat { display: none; }
-    .badge { display: inline-block; padding: 6px 14px; border-radius: 999px; color: white;
-             font-weight: bold; font-size: 1.1rem; text-transform: uppercase; }
-    .positif { background: #16a34a; }
-    .negatif { background: #dc2626; }
-    .neutre  { background: #6b7280; }
-    .barre { height: 14px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin-top: 6px; }
-    .barre div { height: 100%; background: #2563eb; transition: width .4s; }
-    .texte-extrait { background: #f9fafb; padding: 10px; border-radius: 8px; font-style: italic; }
-    .erreur { color: #dc2626; font-weight: bold; }
+    /* Zone d'import de fichier : le vrai <input type="file"> est caché sous un grand cadre cliquable */
+    .zone-fichier {
+      position: relative; display: block; border: 2px dashed var(--bordure); border-radius: 12px;
+      padding: 28px 16px; text-align: center; background: #fdfcfa; cursor: pointer; transition: .2s;
+    }
+    .zone-fichier:hover { border-color: var(--accent); background: #f0fdfa; }
+    .zone-fichier input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .zone-fichier svg { width: 34px; height: 34px; color: var(--accent); }
+    .zone-fichier .principal { font-weight: 600; margin: 8px 0 2px; }
+    .zone-fichier .secondaire { color: var(--gris); font-size: .85rem; margin: 0; }
+    .nom-fichier { margin-top: 10px; font-size: .9rem; color: var(--accent); font-weight: 600; min-height: 1.2em; }
+
+    .envoyer {
+      margin-top: 16px; padding: 12px 22px; font-size: 1rem; font-weight: 600;
+      background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer;
+    }
+    .envoyer:hover { background: #115e59; }
+    .envoyer:disabled { background: #99c9c3; cursor: wait; }
+    .note { color: var(--gris); font-size: .85rem; margin: 10px 0 0; }
+
+    /* ===================== Résultat ===================== */
+    #resultat { display: none; border-left: 6px solid var(--neutre); }
+    #resultat.positif { border-left-color: var(--positif); }
+    #resultat.negatif { border-left-color: var(--negatif); }
+    .ligne-resultat { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+                      flex-wrap: wrap; }
+    .petit-titre { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; color: var(--gris);
+                   margin: 0 0 6px; }
+    .badge { display: inline-block; padding: 6px 16px; border-radius: 999px; color: white;
+             font-weight: 700; font-size: 1.15rem; text-transform: uppercase; letter-spacing: .04em; }
+    .badge.positif { background: var(--positif); }
+    .badge.negatif { background: var(--negatif); }
+    .badge.neutre  { background: var(--neutre); }
+    .source { display: inline-block; background: var(--fond); padding: 6px 12px; border-radius: 8px;
+              font-weight: 600; }
+    .grand-chiffre { font-size: 1.6rem; font-weight: 700; }
+    .barre { height: 10px; background: var(--fond); border-radius: 999px; overflow: hidden; margin-top: 8px; }
+    .barre div { height: 100%; border-radius: 999px; transition: width .5s; background: var(--neutre); }
+    .positif .barre div { background: var(--positif); }
+    .negatif .barre div { background: var(--negatif); }
+    .texte-extrait { background: #fdfcfa; border: 1px solid var(--bordure); padding: 12px 14px;
+                     border-radius: 10px; font-style: italic; line-height: 1.5; margin: 0; }
+    .bloc { margin-top: 20px; }
+    .erreur { color: var(--negatif); font-weight: 600; margin: 0; }
+
+    footer { text-align: center; color: var(--gris); font-size: .85rem; margin-bottom: 30px; }
+    footer a { color: var(--accent); }
   </style>
 </head>
 <body>
-<main>
-  <h1>E-commerce Customer Voice</h1>
-  <p class="sous-titre">Classifieur de sentiment multi-source : texte, image (OCR) ou audio (transcription).</p>
 
+<header>
+  <div class="entete">
+    <span class="etiquette">Mini-projet ML appliqué</span>
+    <h1>E-commerce Customer Voice</h1>
+    <p class="sous-titre">Classifieur de sentiment multi-source : déposez un avis en texte, en image ou en audio.</p>
+    <!-- Rappel visuel de l'architecture en cascade -->
+    <div class="cascade">
+      <span>Texte</span><span>Image → OCR</span><span>Audio → transcription</span>
+      <span class="fleche">→</span><span>Classifieur texte</span>
+      <span class="fleche">→</span><span>Sentiment</span>
+    </div>
+  </div>
+</header>
+
+<main>
   <div class="carte">
     <!-- Choix de la source -->
     <div class="onglets">
-      <button class="actif" data-panneau="texte">Texte</button>
-      <button data-panneau="image">Image</button>
-      <button data-panneau="audio">Audio</button>
+      <button class="actif" data-panneau="texte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        Texte
+      </button>
+      <button data-panneau="image">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>
+        Image
+      </button>
+      <button data-panneau="audio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        Audio
+      </button>
     </div>
 
     <!-- Source 1 : texte -->
     <div class="panneau actif" id="panneau-texte">
+      <label class="titre-champ" for="champ-texte">Avis client</label>
       <textarea id="champ-texte" placeholder="Écrivez un avis client...">Produit conforme à la description, livraison super rapide, je recommande !</textarea>
       <button class="envoyer" onclick="envoyerTexte()">Analyser le texte</button>
     </div>
 
     <!-- Source 2 : image -->
     <div class="panneau" id="panneau-image">
-      <input type="file" id="champ-image" accept="image/png,image/jpeg">
-      <br><button class="envoyer" onclick="envoyerFichier('image')">Analyser l'image</button>
+      <label class="zone-fichier">
+        <input type="file" id="champ-image" accept="image/png,image/jpeg" onchange="afficherNom('image')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+        <p class="principal">Cliquez pour choisir une capture d'écran</p>
+        <p class="secondaire">PNG ou JPEG, 5 Mo maximum. Le texte est lu par OCR (Tesseract).</p>
+        <div class="nom-fichier" id="nom-image"></div>
+      </label>
+      <button class="envoyer" onclick="envoyerFichier('image')">Analyser l'image</button>
     </div>
 
     <!-- Source 3 : audio -->
     <div class="panneau" id="panneau-audio">
-      <input type="file" id="champ-audio" accept="audio/wav,audio/mpeg,.wav,.mp3">
-      <br><button class="envoyer" onclick="envoyerFichier('audio')">Analyser l'audio</button>
-      <p class="sous-titre">La première analyse audio peut prendre quelques secondes (chargement du modèle).</p>
+      <label class="zone-fichier">
+        <input type="file" id="champ-audio" accept="audio/wav,audio/mpeg,.wav,.mp3" onchange="afficherNom('audio')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+        <p class="principal">Cliquez pour choisir un message vocal</p>
+        <p class="secondaire">WAV ou MP3, 10 Mo maximum. Transcription avec faster-whisper.</p>
+        <div class="nom-fichier" id="nom-audio"></div>
+      </label>
+      <button class="envoyer" onclick="envoyerFichier('audio')">Analyser l'audio</button>
+      <p class="note">La première analyse audio peut prendre quelques secondes (chargement du modèle).</p>
     </div>
   </div>
 
   <!-- Zone d'affichage du résultat -->
   <div class="carte" id="resultat"></div>
 </main>
+
+<footer>API FastAPI · documentation interactive sur <a href="/docs">/docs</a> et <a href="/redoc">/redoc</a></footer>
 
 <script>
   // ---- Gestion des onglets : on affiche le panneau correspondant au bouton cliqué ----
@@ -95,6 +216,13 @@
       document.getElementById("panneau-" + bouton.dataset.panneau).classList.add("actif");
     });
   });
+
+  // ---- Affiche le nom du fichier choisi sous la zone d'import ----
+  function afficherNom(type) {
+    const champ = document.getElementById("champ-" + type);
+    document.getElementById("nom-" + type).textContent =
+      champ.files.length ? "Fichier choisi : " + champ.files[0].name : "";
+  }
 
   // ---- Envoi d'un texte : POST /predict/text avec un corps JSON ----
   function envoyerTexte() {
@@ -139,22 +267,37 @@
   function afficherResultat(d) {
     const pourcentage = Math.round(d.confiance * 100);
     const zone = document.getElementById("resultat");
+    zone.className = "carte " + d.sentiment_predit;   // la couleur de la carte suit le sentiment
     zone.style.display = "block";
     zone.innerHTML = `
-      <p>Source : <strong>${d.source}</strong></p>
-      <p>Sentiment prédit : <span class="badge ${d.sentiment_predit}">${d.sentiment_predit}</span></p>
-      <p>Confiance : <strong>${pourcentage} %</strong></p>
+      <div class="ligne-resultat">
+        <div>
+          <p class="petit-titre">Sentiment prédit</p>
+          <span class="badge ${d.sentiment_predit}">${d.sentiment_predit}</span>
+        </div>
+        <div>
+          <p class="petit-titre">Source</p>
+          <span class="source">${d.source}</span>
+        </div>
+        <div>
+          <p class="petit-titre">Confiance</p>
+          <span class="grand-chiffre">${pourcentage} %</span>
+        </div>
+      </div>
       <div class="barre"><div style="width:${pourcentage}%"></div></div>
-      <p>Texte analysé :</p>
-      <p class="texte-extrait"></p>`;
+      <div class="bloc">
+        <p class="petit-titre">Texte analysé</p>
+        <p class="texte-extrait"></p>
+      </div>`;
     // textContent (et non innerHTML) pour afficher le texte sans risque d'injection HTML
     zone.querySelector(".texte-extrait").textContent = d.texte_extrait;
   }
 
   function afficherErreur(message) {
     const zone = document.getElementById("resultat");
+    zone.className = "carte negatif";
     zone.style.display = "block";
-    zone.innerHTML = '<p class="erreur"></p>';
+    zone.innerHTML = '<p class="petit-titre">Erreur</p><p class="erreur"></p>';
     zone.querySelector(".erreur").textContent = message;
   }
 </script>

@@ -115,6 +115,10 @@ fichier trop gros, fichier corrompu ou image sans texte.
 
 ![Swagger](docs/screenshots/swagger.jpg)
 
+Les 11 captures des tests (texte, image, audio, erreurs 422, Swagger, pytest) sont dans
+`docs/screenshots/tests/`. Elles sont aussi rassemblées dans le document Word
+`docs/Captures_tests_E-commerce_Customer_Voice.docx`.
+
 ## Choix techniques et résultats
 
 ### Étape 1 — Classifieur texte (`train.py`)
