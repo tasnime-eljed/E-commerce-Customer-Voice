@@ -170,7 +170,10 @@ le lire comme une limite du dataset.
 ### Étape 4 — Application web (`static/index.html`)
 
 Option B : page HTML/JS servie par FastAPI elle-même, donc une seule commande à lancer.
-Elle propose trois onglets (Texte, Image, Audio) et appelle l'API avec `fetch`.
+Elle propose quatre onglets et appelle l'API avec `fetch` :
+Texte (`/predict/text`), Image (`/predict/image`), Audio (`/predict/audio`) et
+**Auto** (`/predict`). Dans l'onglet Auto, on donne un texte ou un fichier, et l'API
+détecte elle-même le type d'entrée. Si les deux sont donnés, le fichier est prioritaire.
 Elle affiche le sentiment avec un badge coloré et une barre de confiance.
 L'option A (Swagger `/docs`) est aussi disponible.
 
