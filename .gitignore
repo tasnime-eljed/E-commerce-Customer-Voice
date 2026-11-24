@@ -12,3 +12,6 @@ __pycache__/
 .idea/
 Thumbs.db
 .DS_Store
+
+# Fichiers temporaires de Word / Excel (quand un document est ouvert)
+~$*
