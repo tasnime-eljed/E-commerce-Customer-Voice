@@ -1,0 +1,3 @@
+﻿Modèle,Accuracy validation croisée,Accuracy test externe,F1 macro test externe,Bonnes réponses (sur 18),Probabilités (predict_proba)
+Régression Logistique,0.225,0.889,0.889,16,Oui
+SVM linéaire,0.223,0.889,0.889,16,Non

@@ -117,7 +117,7 @@ fichier trop gros, fichier corrompu ou image sans texte.
 
 Les 12 captures des tests (texte, image, audio, erreurs 422, Swagger, détection auto, pytest) sont dans
 `docs/screenshots/tests/`. Elles sont aussi rassemblées dans le document Word
-`docs/Captures_tests_E-commerce_Customer_Voice.docx`.
+`docs/Captures_tests_E-commerce_Customer_Voice_corrige.docx`.
 
 ## Choix techniques et résultats
 
@@ -129,9 +129,10 @@ Les 12 captures des tests (texte, image, audio, erreurs 422, Swagger, détection
   Avec seulement 24 phrases d'entraînement, la plupart des mots du test n'ont jamais été vus.
   Les morceaux de mots rapprochent `recommande` / `recommanderai` et tolèrent les petites
   erreurs de l'OCR. Sur le test externe, cela donne 89 % contre 83 % avec des mots entiers.
+  Ce choix a été fait en regardant ce même test externe : les 89 % sont donc probablement optimistes.
 - **Modèle** : **Régression Logistique**, comparée à un SVM linéaire. On la garde car elle donne
   des **probabilités**, qui servent de score de `confiance`.
-- **Évaluation** : textes de référence des images et audios (18 avis jamais vus) :
+- **Évaluation** : textes de référence des images et audios (18 avis non utilisés à l'entraînement) :
 
 | Classe | Précision | Rappel | F1 |
 |---|---|---|---|
@@ -141,9 +142,14 @@ Les 12 captures des tests (texte, image, audio, erreurs 422, Swagger, détection
 | **Accuracy** | | | **0.89** |
 
 La matrice de confusion est enregistrée dans `models/confusion_matrix.png`.
-La validation croisée sur les 24 textes seuls donne un score faible (≈ 0.33) : chaque pli
-n'a que 6 phrases de test, donc ce chiffre est très instable. Avec si peu de données, il faut
-le lire comme une limite du dataset.
+La validation croisée sur les 24 textes seuls donne un score faible : 0.33 sur un seul
+découpage (`train.py`), mais 0.22 en moyenne sur 20 répétitions (`compare_models.py`), soit moins que
+le hasard (0.33). La généralisation n'est donc pas démontrée avec si peu de données.
+
+Comparaison des deux modèles (`python compare_models.py`) : Régression Logistique et SVM sont à
+égalité (16/18, mêmes prédictions). Détails dans `docs/Comparaison_modeles.docx`.
+
+![Comparaison des modèles](docs/comparaison_modeles.png)
 
 ### Étape 2 — OCR et ASR (`evaluate_multimodal.py`)
 
@@ -156,7 +162,8 @@ le lire comme une limite du dataset.
 - **ASR** : `faster-whisper` est une version allégée de Whisper. Il tourne sur CPU et lit
   directement les `.wav` et `.mp3`, sans ffmpeg. Remarque : `audios.csv` indique des fichiers `.wav`
   alors que le dossier contient des `.mp3`. L'API accepte les deux formats.
-- Les erreurs restantes viennent du **classifieur** (24 exemples), pas de l'extraction.
+- **Erreurs** : sur 3, deux viennent du **classifieur** (I09 et A05 : même erreur avec le texte de référence)
+  et une de l'**OCR** (I01 : « positif » avec le texte exact, « neutre » avec le texte extrait).
   Plus de données d'entraînement serait l'amélioration la plus efficace.
 
 ### Étape 3 — API (`main.py`, `schemas.py`)
